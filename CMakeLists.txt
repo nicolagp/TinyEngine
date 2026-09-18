@@ -42,15 +42,14 @@ endif()
 add_library(tinyengine_dependencies INTERFACE)
 add_library(tinyengine::dependencies ALIAS tinyengine_dependencies)
 
-find_package(absl CONFIG REQUIRED
-    HINTS
-        "${ABSL_ROOT}/lib/cmake"
-        /opt/homebrew/opt/abseil/lib/cmake
-        /usr/local/opt/abseil/lib/cmake
-)
+find_package(CURL REQUIRED)
 
-target_link_libraries(tinyengine_dependencies INTERFACE absl::strings)
-message(STATUS "Abseil enabled")
+target_link_libraries(tinyengine_dependencies INTERFACE CURL::libcurl)
+
+add_executable(tinyengine_client src/tinyengine_client.cpp)
+target_compile_features(tinyengine_client PRIVATE cxx_std_17)
+target_include_directories(tinyengine_client PRIVATE include)
+target_link_libraries(tinyengine_client PRIVATE tinyengine::dependencies)
 
 if(NOT LLAMA_SERVER_BIN)
     find_program(LLAMA_SERVER_BIN

@@ -38,4 +38,18 @@ cmake --build build
 ./build/tinyengine_client --prompt "Explain KV caching in one sentence."
 ```
 
+By default, the client sends a POST request to
+`http://127.0.0.1:8080/v1/chat/completions`. Use the optional flags when the
+server is running somewhere else or you want different sampling settings:
+
+```sh
+./build/tinyengine_client \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --model local-model \
+  --max-tokens 128 \
+  --temperature 0.4 \
+  --prompt "Write a short haiku about local inference."
+```
+
 The client prints the raw HTTP response so the wire protocol stays visible.
