@@ -18,12 +18,19 @@ if(NOT DEFINED LLAMA_CPP_EXPECTED_VERSION AND DEFINED ENV{LLAMA_CPP_EXPECTED_VER
         "Expected llama.cpp version, if one is required")
 endif()
 
+if(NOT DEFINED ABSL_ROOT AND DEFINED ENV{ABSL_ROOT})
+    set(ABSL_ROOT "$ENV{ABSL_ROOT}" CACHE PATH
+        "Installation root for Abseil")
+endif()
+
 set(LLAMA_CPP_ROOT "${LLAMA_CPP_ROOT}" CACHE PATH
     "Homebrew prefix or installation root for llama.cpp")
 set(LLAMA_SERVER_BIN "${LLAMA_SERVER_BIN}" CACHE FILEPATH
     "Path to the llama.cpp server executable")
 set(LLAMA_CPP_EXPECTED_VERSION "${LLAMA_CPP_EXPECTED_VERSION}" CACHE STRING
     "Expected llama.cpp version, if one is required")
+set(ABSL_ROOT "${ABSL_ROOT}" CACHE PATH
+    "Installation root for Abseil")
 
 # CMake caches a failed find as LLAMA_SERVER_BIN-NOTFOUND. Clear that value so
 # installing llama.cpp later does not require manually deleting the build tree.
@@ -31,6 +38,19 @@ if(LLAMA_SERVER_BIN STREQUAL "" OR LLAMA_SERVER_BIN MATCHES "-NOTFOUND$")
     unset(LLAMA_SERVER_BIN CACHE)
     unset(LLAMA_SERVER_BIN)
 endif()
+
+add_library(tinyengine_dependencies INTERFACE)
+add_library(tinyengine::dependencies ALIAS tinyengine_dependencies)
+
+find_package(absl CONFIG REQUIRED
+    HINTS
+        "${ABSL_ROOT}/lib/cmake"
+        /opt/homebrew/opt/abseil/lib/cmake
+        /usr/local/opt/abseil/lib/cmake
+)
+
+target_link_libraries(tinyengine_dependencies INTERFACE absl::strings)
+message(STATUS "Abseil enabled")
 
 if(NOT LLAMA_SERVER_BIN)
     find_program(LLAMA_SERVER_BIN
