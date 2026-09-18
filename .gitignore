@@ -52,6 +52,11 @@ Makefile
 install_manifest.txt
 compile_commands.json
 
+# Local configuration
+.env
+.env.*
+!.env.example
+
 # Temporary files
 *.tmp
 *.log
