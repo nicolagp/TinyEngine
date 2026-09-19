@@ -1,134 +1,72 @@
-#include "tinyengine/chat_protocol.h"
-#include "request_utils.h"
+#include "tinyengine/client.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
-
-#include <curl/curl.h>
-#include <nlohmann/json.hpp>
-
 
 namespace {
 
-[[noreturn]] void print_usage_and_exit();
-
-std::string require_value(int& index, int argc, char* argv[]) {
-    if (++index >= argc) {
-        print_usage_and_exit();
-    }
-    return argv[index];
-}
-
-[[noreturn]] void print_usage_and_exit() {
+void print_usage() {
     std::cerr << "Usage: tinyengine_client --prompt TEXT [options]\n"
               << "  --host HOST          Server host (default: 127.0.0.1)\n"
               << "  --port PORT          Server port (default: 8080)\n"
               << "  --model MODEL        Model identifier (default: local-model)\n"
-              << "  --max-tokens COUNT   Maximum generated tokens (default: 64)\n"
+              << "  --max-tokens COUNT   Maximum generated tokens (default: 256)\n"
               << "  --temperature VALUE  Sampling temperature (default: 0.7)\n";
-    std::exit(2);
 }
 
-class ClientOptions {
-public:
-    ClientOptions() = default;
-    
-    void parse_options(int argc, char* argv[]) {
-        for (int index = 1; index < argc; ++index) {
-            const std::string argument = argv[index];
-            if (argument == "--host") {
-                host = require_value(index, argc, argv);
-            } else if (argument == "--port") {
-                port = require_value(index, argc, argv);
-            } else if (argument == "--model") {
-                request.model = require_value(index, argc, argv);
-            } else if (argument == "--prompt") {
-                request.prompt = require_value(index, argc, argv);
-            } else if (argument == "--max-tokens") {
-                request.max_tokens = std::stoi(require_value(index, argc, argv));
-            } else if (argument == "--temperature") {
-                request.temperature = std::stod(require_value(index, argc, argv));
-            } else {
-                print_usage_and_exit();
-            }
+std::string require_value(int& index, int argc, char* argv[]) {
+    if (++index >= argc) {
+        throw std::invalid_argument("option requires a value");
+    }
+    return argv[index];
+}
+
+void parse_arguments(int argc, char* argv[], std::string& host, std::string& port,
+                     tinyengine::ChatRequest& request) {
+    for (int index = 1; index < argc; ++index) {
+        const std::string argument = argv[index];
+        if (argument == "--host") {
+            host = require_value(index, argc, argv);
+        } else if (argument == "--port") {
+            port = require_value(index, argc, argv);
+        } else if (argument == "--model") {
+            request.model = require_value(index, argc, argv);
+        } else if (argument == "--prompt") {
+            request.prompt = require_value(index, argc, argv);
+        } else if (argument == "--max-tokens") {
+            request.max_tokens = std::stoi(require_value(index, argc, argv));
+        } else if (argument == "--temperature") {
+            request.temperature = std::stod(require_value(index, argc, argv));
+        } else {
+            throw std::invalid_argument("unknown option: " + argument);
         }
-
-        if (request.prompt.empty()) {
-            print_usage_and_exit();
-        }
     }
 
-    std::string chat_completions_url() const {
-        return "http://" + host + ":" + port + "/v1/chat/completions";
+    if (request.prompt.empty()) {
+        throw std::invalid_argument("--prompt is required");
     }
-
-    std::string request_body() const {
-        return tinyengine::utils::serialize_chat_request(request);
-    }
-
-private:
-    std::string host{"127.0.0.1"};
-    std::string port{"8080"};
-    tinyengine::ChatRequest request;
-};
+}
 
 }  // namespace
 
 int main(int argc, char* argv[]) {
-    ClientOptions options;
+    std::string host{"127.0.0.1"};
+    std::string port{"8080"};
+    tinyengine::ChatRequest request;
     try {
-        options.parse_options(argc, argv);
+        parse_arguments(argc, argv, host, port, request);
     } catch (const std::exception& error) {
-        std::cerr << "Invalid argument: " << error.what() << "\n";
+        std::cerr << error.what() << "\n";
+        print_usage();
         return 2;
     }
 
-    curl_global_init(CURL_GLOBAL_ALL);
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
-        std::cerr << "Failed to initialize libcurl\n";
-        curl_global_cleanup();
-        return 1;
-    }
-
-    std::string response_body;
-    const std::string body = options.request_body();
-    const std::string url = options.chat_completions_url();
-    curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, tinyengine::utils::write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
-
-    CURLcode result = curl_easy_perform(curl);
-    if (result != CURLE_OK) {
-        std::cerr << "Request failed: " << curl_easy_strerror(result) << "\n";
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return 1;
-    }
-
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
-
     try {
-        const auto response = nlohmann::json::parse(response_body);
-        const std::string content = response.at("choices").at(0).at("message")
-                                        .at("content").get<std::string>();
-        std::cout << content << "\n";
-    } catch (const nlohmann::json::exception& error) {
-        std::cerr << "Unexpected response JSON: " << error.what() << "\n";
-        std::cout << response_body << "\n";
+        tinyengine::Client client(host, port);
+        std::cout << client.execute(request) << "\n";
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << "\n";
         return 1;
     }
-
-    return 0;
 }
