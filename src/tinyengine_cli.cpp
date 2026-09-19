@@ -7,7 +7,7 @@
 namespace {
 
 void print_usage() {
-    std::cerr << "Usage: tinyengine_client [options]\n"
+    std::cerr << "Usage: tinyengine_cli [options]\n"
               << "  --host HOST          Server host (default: 127.0.0.1)\n"
               << "  --port PORT          Server port (default: 8080)\n"
               << "  --model MODEL        Model identifier (default: local-model)\n"

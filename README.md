@@ -11,7 +11,7 @@ This is a personal project where I learn how to set up a small inference server 
 
 ## First Protocol Experiment
 
-`tinyengine_client` sends an OpenAI-compatible chat-completion request to a
+`tinyengine_cli` sends an OpenAI-compatible chat-completion request to a
 local `llama-server`. The JSON body is deliberately small:
 
 ```json
@@ -35,7 +35,7 @@ Then build and run the client in another:
 ```sh
 cmake -S . -B build
 cmake --build build
-./build/tinyengine_client
+./build/tinyengine_cli
 ```
 
 By default, the client sends a POST request to
@@ -46,7 +46,7 @@ Use the optional startup flags when the server is running somewhere else or you
 want different sampling settings:
 
 ```sh
-./build/tinyengine_client \
+./build/tinyengine_cli \
   --host 127.0.0.1 \
   --port 8080 \
   --model local-model \

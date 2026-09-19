@@ -56,10 +56,10 @@ FetchContent_MakeAvailable(nlohmann_json)
 
 target_link_libraries(tinyengine_dependencies INTERFACE CURL::libcurl)
 
-add_executable(tinyengine_client src/tinyengine_client.cpp)
-target_compile_features(tinyengine_client PRIVATE cxx_std_17)
-target_include_directories(tinyengine_client PRIVATE include)
-target_link_libraries(tinyengine_client PRIVATE
+add_executable(tinyengine_cli src/tinyengine_cli.cpp)
+target_compile_features(tinyengine_cli PRIVATE cxx_std_17)
+target_include_directories(tinyengine_cli PRIVATE include)
+target_link_libraries(tinyengine_cli PRIVATE
     tinyengine::dependencies
     nlohmann_json::nlohmann_json
 )
