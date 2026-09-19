@@ -1,4 +1,5 @@
 #include "tinyengine/chat_protocol.h"
+#include "request_utils.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -8,35 +9,6 @@
 
 #include <curl/curl.h>
 
-namespace tinyengine {
-
-std::string escape_json(std::string_view value) {
-    std::string escaped;
-    escaped.reserve(value.size());
-
-    for (const char character : value) {
-        switch (character) {
-            case '"': escaped += "\\\""; break;
-            case '\\': escaped += "\\\\"; break;
-            case '\n': escaped += "\\n"; break;
-            case '\r': escaped += "\\r"; break;
-            case '\t': escaped += "\\t"; break;
-            default: escaped += character; break;
-        }
-    }
-
-    return escaped;
-}
-
-std::string serialize_chat_request(const ChatRequest& request) {
-    return "{\"model\":\"" + escape_json(request.model) +
-           "\",\"messages\":[{\"role\":\"user\",\"content\":\"" +
-           escape_json(request.prompt) + "\"}],\"max_tokens\":" +
-           std::to_string(request.max_tokens) + ",\"temperature\":" +
-           std::to_string(request.temperature) + ",\"stream\":false}";
-}
-
-}  // namespace tinyengine
 
 namespace {
 
@@ -93,7 +65,7 @@ public:
     }
 
     std::string request_body() const {
-        return tinyengine::serialize_chat_request(request);
+        return tinyengine::utils::serialize_chat_request(request);
     }
 
 private:
@@ -101,17 +73,6 @@ private:
     std::string port{"8080"};
     tinyengine::ChatRequest request;
 };
-
-
-size_t write_callback(char* data, size_t size, size_t nmemb, std::string* buffer) {
-    if (buffer == nullptr) {
-        return 0;
-    }
-    buffer->append(data, size * nmemb);
-    return size * nmemb;
-}
-
-
 
 }  // namespace
 
@@ -141,7 +102,7 @@ int main(int argc, char* argv[]) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, tinyengine::utils::write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
 
     CURLcode result = curl_easy_perform(curl);
