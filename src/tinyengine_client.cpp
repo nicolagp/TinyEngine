@@ -7,7 +7,7 @@
 namespace {
 
 void print_usage() {
-    std::cerr << "Usage: tinyengine_client --prompt TEXT [options]\n"
+    std::cerr << "Usage: tinyengine_client [options]\n"
               << "  --host HOST          Server host (default: 127.0.0.1)\n"
               << "  --port PORT          Server port (default: 8080)\n"
               << "  --model MODEL        Model identifier (default: local-model)\n"
@@ -32,8 +32,6 @@ void parse_arguments(int argc, char* argv[], std::string& host, std::string& por
             port = require_value(index, argc, argv);
         } else if (argument == "--model") {
             request.model = require_value(index, argc, argv);
-        } else if (argument == "--prompt") {
-            request.prompt = require_value(index, argc, argv);
         } else if (argument == "--max-tokens") {
             request.max_tokens = std::stoi(require_value(index, argc, argv));
         } else if (argument == "--temperature") {
@@ -43,9 +41,6 @@ void parse_arguments(int argc, char* argv[], std::string& host, std::string& por
         }
     }
 
-    if (request.prompt.empty()) {
-        throw std::invalid_argument("--prompt is required");
-    }
 }
 
 }  // namespace
@@ -64,7 +59,22 @@ int main(int argc, char* argv[]) {
 
     try {
         tinyengine::Client client(host, port);
-        std::cout << client.execute(request) << "\n";
+        while (true) {
+            std::cout << "> " << std::flush;
+            if (!std::getline(std::cin, request.prompt)) {
+                std::cout << "\n";
+                break;
+            }
+            if (request.prompt.empty()) {
+                continue;
+            }
+
+            try {
+                std::cout << client.execute(request) << "\n";
+            } catch (const std::exception& error) {
+                std::cerr << error.what() << "\n";
+            }
+        }
     } catch (const std::exception& error) {
         std::cerr << error.what() << "\n";
         return 1;

@@ -35,12 +35,15 @@ Then build and run the client in another:
 ```sh
 cmake -S . -B build
 cmake --build build
-./build/tinyengine_client --prompt "Explain KV caching in one sentence."
+./build/tinyengine_client
 ```
 
 By default, the client sends a POST request to
-`http://127.0.0.1:8080/v1/chat/completions`. Use the optional flags when the
-server is running somewhere else or you want different sampling settings:
+`http://127.0.0.1:8080/v1/chat/completions`. Enter a prompt after `> `; the
+client prints the assistant response and prompts again. Press `Ctrl-D` to exit.
+
+Use the optional startup flags when the server is running somewhere else or you
+want different sampling settings:
 
 ```sh
 ./build/tinyengine_client \
@@ -48,8 +51,7 @@ server is running somewhere else or you want different sampling settings:
   --port 8080 \
   --model local-model \
   --max-tokens 128 \
-  --temperature 0.4 \
-  --prompt "Write a short haiku about local inference."
+  --temperature 0.4
 ```
 
-The client prints the raw HTTP response so the wire protocol stays visible.
+The client prints only the assistant message content from the JSON response.
