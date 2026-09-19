@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
 
 namespace {
@@ -114,10 +115,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << response_body << "\n";
-
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     curl_global_cleanup();
+
+    try {
+        const auto response = nlohmann::json::parse(response_body);
+        const std::string content = response.at("choices").at(0).at("message")
+                                        .at("content").get<std::string>();
+        std::cout << content << "\n";
+    } catch (const nlohmann::json::exception& error) {
+        std::cerr << "Unexpected response JSON: " << error.what() << "\n";
+        std::cout << response_body << "\n";
+        return 1;
+    }
+
     return 0;
 }

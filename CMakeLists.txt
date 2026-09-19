@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 project(TinyEngine LANGUAGES CXX)
 
+include(FetchContent)
+
 # These values may be supplied by sourcing .env before configuring CMake.
 if(NOT DEFINED LLAMA_CPP_ROOT AND DEFINED ENV{LLAMA_CPP_ROOT})
     set(LLAMA_CPP_ROOT "$ENV{LLAMA_CPP_ROOT}" CACHE PATH
@@ -44,12 +46,23 @@ add_library(tinyengine::dependencies ALIAS tinyengine_dependencies)
 
 find_package(CURL REQUIRED)
 
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 target_link_libraries(tinyengine_dependencies INTERFACE CURL::libcurl)
 
 add_executable(tinyengine_client src/tinyengine_client.cpp)
 target_compile_features(tinyengine_client PRIVATE cxx_std_17)
 target_include_directories(tinyengine_client PRIVATE include)
-target_link_libraries(tinyengine_client PRIVATE tinyengine::dependencies)
+target_link_libraries(tinyengine_client PRIVATE
+    tinyengine::dependencies
+    nlohmann_json::nlohmann_json
+)
 
 if(NOT LLAMA_SERVER_BIN)
     find_program(LLAMA_SERVER_BIN
